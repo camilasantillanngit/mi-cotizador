@@ -22,4 +22,4 @@
 
 ## 5. Verificación final
 
-- [ ] 5.1 Abrir el ejecutable `dist/Mi Cotizador.app`, convertir al menos dos montos y abrir `historial.txt` para comprobar fecha, hora y valores. Verificación: el archivo tiene una línea por conversión con el formato de la spec.
+- [x] 5.1 Abrir el ejecutable `dist/Mi Cotizador.app`, convertir al menos dos montos y abrir `historial.txt` para comprobar fecha, hora y valores. Verificación: el archivo tiene una línea por conversión con el formato de la spec.
