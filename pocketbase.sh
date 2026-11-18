@@ -14,4 +14,4 @@ if [ ! -x pocketbase/pocketbase ]; then
   rm -f "pocketbase/$ZIP"
   chmod +x pocketbase/pocketbase
 fi
-exec ./pocketbase/pocketbase serve --http=127.0.0.1:8090
+exec ./pocketbase/pocketbase serve --http=127.0.0.1:8090 --migrationsDir=./pb_migrations

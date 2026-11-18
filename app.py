@@ -20,6 +20,16 @@ HTML = """<!doctype html>
   .secundario{background:#e5e5ea;color:#1d1d1f;margin-top:0;padding:6px 12px;width:auto;font-size:13px}
   .barra{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-size:13px;color:#555}
   .err{color:#c0212a;font-size:14px;min-height:18px;margin-top:10px}
+  .tabs{display:none;gap:6px;margin-bottom:14px}.tabs.admin{display:flex}
+  .tab{margin:0;padding:6px 14px;width:auto;font-size:13px;background:#e5e5ea;color:#1d1d1f}
+  .tab.sel{background:#1d1d1f;color:#fff}
+  .fila{display:grid;grid-template-columns:1fr auto;gap:4px 8px;align-items:center;background:#fff;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:13px}
+  .fila .estado{color:#2a7a2a}.fila.off .estado{color:#c0212a}
+  .acciones{grid-column:1/3;display:flex;gap:6px}
+  .acciones button{margin:0;padding:5px 10px;width:auto;font-size:12px}
+  .acciones .peligro{background:#c0212a}
+  #form-clave{display:none;background:#fff;border-radius:8px;padding:10px;margin-top:8px}
+  #form-clave.ver{display:block}
 </style></head><body>
 <h1>Mi Cotizador</h1>
 
@@ -42,6 +52,11 @@ HTML = """<!doctype html>
 
 <div id="v-conversor" class="vista">
   <div class="barra"><span id="usuario"></span><button class="secundario" id="b-salir">Cerrar sesión</button></div>
+  <div class="tabs" id="tabs">
+    <button class="tab sel" id="t-conv">Conversor</button>
+    <button class="tab" id="t-cuentas">Cuentas</button>
+  </div>
+  <div id="panel-conv">
   <label for="monto">Monto en pesos (ARS)</label>
   <input id="monto" inputmode="decimal">
   <label for="cotizacion">Cotización del dólar</label>
@@ -50,6 +65,16 @@ HTML = """<!doctype html>
   <div id="error"></div>
   <div id="resultado"></div>
   <div id="aviso"></div>
+  </div>
+  <div id="panel-cuentas" style="display:none">
+    <div id="lista"></div>
+    <div id="form-clave">
+      <label for="nueva-clave" id="clave-para"></label>
+      <input id="nueva-clave" type="password" autocomplete="new-password">
+      <button id="b-clave">Guardar contraseña nueva</button>
+    </div>
+    <div class="err" id="c-err"></div>
+  </div>
 </div>
 
 <script>
@@ -59,13 +84,61 @@ function ver(nombre){
   $('v-' + nombre).classList.add('activa');
 }
 function limpiarClaves(){ for (const i of ['l-clave','r-clave','r-conf']) $(i).value=''; }
+let cuentaClave = null;
+function pestana(nombre){
+  $('panel-conv').style.display = nombre === 'conv' ? 'block' : 'none';
+  $('panel-cuentas').style.display = nombre === 'cuentas' ? 'block' : 'none';
+  $('t-conv').classList.toggle('sel', nombre === 'conv');
+  $('t-cuentas').classList.toggle('sel', nombre === 'cuentas');
+  if (nombre === 'cuentas'){ $('c-err').textContent = ''; cargarCuentas(); }
+}
+function boton(texto, clase, accion){
+  const b = document.createElement('button');
+  b.textContent = texto; if (clase) b.className = clase;
+  b.addEventListener('click', accion); return b;
+}
+async function cargarCuentas(){
+  const r = await window.pywebview.api.listar_cuentas();
+  if (!r.ok) $('c-err').textContent = r.error;
+  const lista = $('lista'); lista.replaceChildren();
+  if (!r.ok) return;
+  for (const c of r.cuentas){
+    const fila = document.createElement('div');
+    fila.className = 'fila' + (c.desactivado ? ' off' : '');
+    const nombre = document.createElement('span'); nombre.textContent = c.correo + ' · ' + c.rol;
+    const estado = document.createElement('span'); estado.className = 'estado';
+    estado.textContent = c.desactivado ? 'Desactivada' : 'Activa';
+    const acc = document.createElement('div'); acc.className = 'acciones';
+    acc.append(
+      boton(c.desactivado ? 'Reactivar' : 'Desactivar', c.desactivado ? '' : 'peligro', async () => {
+        const x = await (c.desactivado ? window.pywebview.api.reactivar(c.id) : window.pywebview.api.desactivar(c.id));
+        $('c-err').style.color = ''; $('c-err').textContent = x.ok ? '' : x.error; cargarCuentas();
+      }),
+      boton('Nueva contraseña', '', () => {
+        cuentaClave = c.id; $('clave-para').textContent = 'Contraseña nueva para ' + c.correo;
+        $('nueva-clave').value = ''; $('form-clave').classList.add('ver'); $('nueva-clave').focus();
+      }));
+    fila.append(nombre, estado, acc); lista.append(fila);
+  }
+}
 function entrar(r){
   limpiarClaves();
-  $('usuario').textContent = r.correo;
+  $('usuario').textContent = r.correo + (r.rol === 'admin' ? ' (admin)' : '');
+  $('tabs').classList.toggle('admin', r.rol === 'admin');
+  $('form-clave').classList.remove('ver'); $('c-err').textContent = ''; cuentaClave = null;
+  pestana('conv');
   $('l-err').textContent = ''; $('r-err').textContent = '';
   $('resultado').textContent = ''; $('error').textContent = ''; $('aviso').textContent = '';
   ver('conversor');
 }
+$('t-conv').addEventListener('click', () => pestana('conv'));
+$('t-cuentas').addEventListener('click', () => pestana('cuentas'));
+$('b-clave').addEventListener('click', async () => {
+  const r = await window.pywebview.api.resetear_clave(cuentaClave, $('nueva-clave').value);
+  $('c-err').textContent = r.ok ? '' : r.error;
+  if (r.ok){ $('form-clave').classList.remove('ver'); $('nueva-clave').value = ''; $('c-err').style.color = '#2a7a2a'; $('c-err').textContent = 'Contraseña actualizada.'; }
+  else $('c-err').style.color = '';
+});
 $('ir-registro').addEventListener('click', () => ver('registro'));
 $('ir-login').addEventListener('click', () => ver('login'));
 $('b-login').addEventListener('click', async () => {
@@ -92,7 +165,9 @@ document.addEventListener('keydown', e => {
   const activa = document.querySelector('.vista.activa').id;
   if (activa === 'v-login') $('b-login').click();
   else if (activa === 'v-registro') $('b-registro').click();
-  else convertir();
+  else if ($('panel-cuentas').style.display === 'block'){
+    if ($('form-clave').classList.contains('ver')) $('b-clave').click();
+  } else convertir();
 });
 </script></body></html>"""
 
@@ -101,5 +176,5 @@ Api = Servicio
 
 
 if __name__ == "__main__":
-    webview.create_window("Mi Cotizador", html=HTML, js_api=Api(), width=420, height=560)
+    webview.create_window("Mi Cotizador", html=HTML, js_api=Api(), width=460, height=640)
     webview.start()
