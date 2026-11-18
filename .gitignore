@@ -5,3 +5,4 @@ __pycache__/
 *.spec
 historial.txt
 .DS_Store
+pocketbase/

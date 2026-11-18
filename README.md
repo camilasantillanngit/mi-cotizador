@@ -1,9 +1,20 @@
 # Mi Cotizador
 
-App de escritorio (macOS) para convertir un monto en pesos a dólares con la cotización que ingreses. Cada conversión se guarda con fecha y hora en `historial.txt`.
+App de escritorio (macOS) para convertir un monto en pesos a dólares con la cotización que ingreses. Hay que registrarse e iniciar sesión (usuarios en PocketBase). Cada conversión se guarda con fecha y hora en `historial.txt`.
 
 ## Qué necesita
 - Python 3.9 o superior y macOS (Apple Silicon probado).
+
+## PocketBase (base de datos de usuarios)
+La app necesita PocketBase en marcha. En una terminal aparte:
+```bash
+./pocketbase.sh
+```
+La primera vez descarga PocketBase v0.40.6 (verifica el checksum) y queda en `pocketbase/` (no se sube a Git). Después:
+1. Abrí `http://127.0.0.1:8090/_/` y creá el usuario administrador de la base (correo y contraseña a tu elección).
+2. Los usuarios de la app se registran desde la propia app (pantalla "Registrate"). Para probar, registrá dos y verlos en el panel: colección `users`.
+
+Si PocketBase está en otra dirección, definí `POCKETBASE_URL`.
 
 ## Ejecutar en desarrollo
 ```bash
