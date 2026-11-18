@@ -17,4 +17,4 @@
 
 ## 4. Verificación final
 
-- [ ] 4.1 Registrar dos usuarios, iniciar y cerrar sesión, convertir, y confirmar en el panel de PocketBase que aparecen las dos cuentas. Verificación: el panel lista los dos usuarios; con PocketBase apagado la app muestra el aviso sin cerrarse.
+- [x] 4.1 Registrar dos usuarios, iniciar y cerrar sesión, convertir, y confirmar en el panel de PocketBase que aparecen las dos cuentas. Verificación: el panel lista los dos usuarios; con PocketBase apagado la app muestra el aviso sin cerrarse.
