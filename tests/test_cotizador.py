@@ -1,7 +1,5 @@
 import sys
-import tempfile
 import unittest
-from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 
@@ -29,43 +27,23 @@ class TestConversion(unittest.TestCase):
                 c.parsear_numero(texto, "el monto")
 
 
-class TestHistorial(unittest.TestCase):
-    def setUp(self):
-        self.dir = tempfile.TemporaryDirectory()
-        self.ruta = Path(self.dir.name) / "historial.txt"
-        self.ahora = datetime(2026, 11, 16, 17, 45, 3)
-
-    def tearDown(self):
-        self.dir.cleanup()
-
-    def test_crea_y_formato(self):
-        r = c.procesar("100000", "1000", self.ruta, self.ahora)
-        self.assertTrue(r["ok"])
-        self.assertEqual(r["resultado"], "USD 100,00")
+class TestCalcular(unittest.TestCase):
+    def test_calculo_correcto(self):
+        r = c.calcular("150000", "1550")
         self.assertEqual(
-            self.ruta.read_text(encoding="utf-8"),
-            "2026-11-16 17:45:03 | ARS 100000.00 | cotización 1000.00 | USD 100.00\n",
+            (r["ok"], r["monto"], r["cotizacion"], r["resultado"]),
+            (True, Decimal("150000.00"), Decimal("1550.00"), Decimal("96.77")),
         )
 
-    def test_agrega_sin_borrar(self):
-        c.procesar("100", "10", self.ruta, self.ahora)
-        c.procesar("200", "10", self.ruta, self.ahora)
-        self.assertEqual(len(self.ruta.read_text(encoding="utf-8").splitlines()), 2)
+    def test_error_de_validacion(self):
+        for monto, cot in [("abc", "1000"), ("100", "0"), ("", "10")]:
+            r = c.calcular(monto, cot)
+            self.assertFalse(r["ok"])
+            self.assertIn("error", r)
 
-    def test_invalido_no_escribe(self):
-        r = c.procesar("abc", "1000", self.ruta, self.ahora)
-        self.assertFalse(r["ok"])
-        self.assertFalse(self.ruta.exists())
-        r = c.procesar("100", "0", self.ruta, self.ahora)
-        self.assertFalse(r["ok"])
-        self.assertFalse(self.ruta.exists())
-
-    def test_error_de_escritura_conserva_resultado(self):
-        ruta_mala = Path(self.dir.name) / "no_existe" / "historial.txt"
-        r = c.procesar("100", "10", ruta_mala, self.ahora)
-        self.assertTrue(r["ok"])
-        self.assertEqual(r["resultado"], "USD 10,00")
-        self.assertIsNotNone(r["aviso"])
+    def test_no_hay_codigo_de_archivo(self):
+        for nombre in ("procesar", "guardar_en_historial", "ruta_historial", "linea_historial"):
+            self.assertFalse(hasattr(c, nombre), nombre)
 
 
 if __name__ == "__main__":

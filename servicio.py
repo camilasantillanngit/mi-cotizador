@@ -28,7 +28,27 @@ class Servicio:
     def convertir(self, monto, cotizacion):
         if not self._sesion:
             return {"ok": False, "error": "Iniciá sesión para convertir."}
-        return cotizador.procesar(monto, cotizacion)
+        calculo = cotizador.calcular(monto, cotizacion)
+        if not calculo["ok"]:
+            return calculo
+        respuesta = {"ok": True, "resultado": cotizador.formatear_usd(calculo["resultado"]), "aviso": None}
+        try:
+            pb.guardar_consulta(self._sesion.token, self._sesion.id, calculo["monto"],
+                                calculo["cotizacion"], calculo["resultado"], self._base)
+        except pb.ErrorAcceso as error:
+            respuesta["aviso"] = str(error)
+        return respuesta
+
+    def listar_historial(self):
+        if not self._sesion:
+            return {"ok": False, "error": "Iniciá sesión para ver el historial."}
+        try:
+            consultas = pb.listar_consultas(self._sesion.token, self._base)
+        except pb.ErrorAcceso as error:
+            return {"ok": False, "error": str(error)}
+        return {"ok": True, "es_admin": self._sesion.rol == "admin", "consultas": [
+            {"id": c.id, "correo": c.correo, "monto": c.monto, "cotizacion": c.cotizacion,
+             "resultado": c.resultado, "fecha": c.fecha} for c in consultas]}
 
     # --- administración de cuentas (la barrera real son las reglas de PocketBase) ---
     def _admin(self, accion):

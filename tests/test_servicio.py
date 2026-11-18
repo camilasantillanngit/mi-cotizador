@@ -20,18 +20,44 @@ def servicio_con(sesion):
 
 class TestSesion(unittest.TestCase):
     def test_convertir_sin_sesion_se_rechaza(self):
-        with mock.patch("cotizador.procesar") as procesar:
+        with mock.patch("pocketbase_cliente.guardar_consulta") as guardar:
             r = Servicio().convertir("100", "10")
         self.assertFalse(r["ok"])
-        procesar.assert_not_called()
+        guardar.assert_not_called()
 
-    def test_con_sesion_convierte_y_cerrar_la_quita(self):
+    def test_con_sesion_convierte_guarda_y_cerrar_la_quita(self):
         s = servicio_con(USUARIO)
-        with mock.patch("cotizador.procesar", return_value={"ok": True}) as procesar:
-            self.assertTrue(s.convertir("100", "10")["ok"])
-            procesar.assert_called_once()
+        with mock.patch("pocketbase_cliente.guardar_consulta") as guardar:
+            r = s.convertir("155000", "1550")
+        self.assertEqual((r["ok"], r["resultado"], r["aviso"]), (True, "USD 100,00", None))
+        token, usuario, monto, cot, res = guardar.call_args.args[:5]
+        self.assertEqual((token, usuario, str(monto), str(cot), str(res)), ("tok", "idUser", "155000.00", "1550.00", "100.00"))
         s.cerrar_sesion()
         self.assertFalse(s.convertir("100", "10")["ok"])
+
+    def test_si_falla_el_guardado_igual_muestra_el_resultado(self):
+        s = servicio_con(USUARIO)
+        with mock.patch("pocketbase_cliente.guardar_consulta", side_effect=pb.BaseNoDisponible("base caída")):
+            r = s.convertir("155000", "1550")
+        self.assertTrue(r["ok"])
+        self.assertEqual(r["resultado"], "USD 100,00")
+        self.assertEqual(r["aviso"], "base caída")
+
+    def test_datos_invalidos_no_guardan(self):
+        s = servicio_con(USUARIO)
+        with mock.patch("pocketbase_cliente.guardar_consulta") as guardar:
+            self.assertFalse(s.convertir("abc", "1550")["ok"])
+            self.assertFalse(s.convertir("100", "0")["ok"])
+        guardar.assert_not_called()
+
+    def test_historial_exige_sesion_y_devuelve_rol(self):
+        self.assertFalse(Servicio().listar_historial()["ok"])
+        consulta = pb.Consulta("c1", "a@b.com", 150000, 1550, 96.77, "2026-11-18 22:29:17.101Z")
+        for sesion, admin in ((USUARIO, False), (ADMIN, True)):
+            s = servicio_con(sesion)
+            with mock.patch("pocketbase_cliente.listar_consultas", return_value=[consulta]):
+                r = s.listar_historial()
+            self.assertEqual((r["ok"], r["es_admin"], r["consultas"][0]["correo"]), (True, admin, "a@b.com"))
 
     def test_inicio_devuelve_rol(self):
         s = Servicio()

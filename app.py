@@ -20,7 +20,11 @@ HTML = """<!doctype html>
   .secundario{background:#e5e5ea;color:#1d1d1f;margin-top:0;padding:6px 12px;width:auto;font-size:13px}
   .barra{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-size:13px;color:#555}
   .err{color:#c0212a;font-size:14px;min-height:18px;margin-top:10px}
-  .tabs{display:none;gap:6px;margin-bottom:14px}.tabs.admin{display:flex}
+  .tabs{display:flex;gap:6px;margin-bottom:14px}
+  #t-cuentas{display:none}.tabs.admin #t-cuentas{display:inline-block}
+  .consulta{background:#fff;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:13px}
+  .consulta .fecha{color:#666;font-size:12px}.consulta .quien{color:#0a6cff;font-size:12px}
+  .vacio{color:#666;font-size:13px}
   .tab{margin:0;padding:6px 14px;width:auto;font-size:13px;background:#e5e5ea;color:#1d1d1f}
   .tab.sel{background:#1d1d1f;color:#fff}
   .fila{display:grid;grid-template-columns:1fr auto;gap:4px 8px;align-items:center;background:#fff;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:13px}
@@ -54,6 +58,7 @@ HTML = """<!doctype html>
   <div class="barra"><span id="usuario"></span><button class="secundario" id="b-salir">Cerrar sesión</button></div>
   <div class="tabs" id="tabs">
     <button class="tab sel" id="t-conv">Conversor</button>
+    <button class="tab" id="t-hist">Historial</button>
     <button class="tab" id="t-cuentas">Cuentas</button>
   </div>
   <div id="panel-conv">
@@ -65,6 +70,10 @@ HTML = """<!doctype html>
   <div id="error"></div>
   <div id="resultado"></div>
   <div id="aviso"></div>
+  </div>
+  <div id="panel-hist" style="display:none">
+    <div id="lista-hist"></div>
+    <div class="err" id="h-err"></div>
   </div>
   <div id="panel-cuentas" style="display:none">
     <div id="lista"></div>
@@ -87,15 +96,42 @@ function limpiarClaves(){ for (const i of ['l-clave','r-clave','r-conf']) $(i).v
 let cuentaClave = null;
 function pestana(nombre){
   $('panel-conv').style.display = nombre === 'conv' ? 'block' : 'none';
+  $('panel-hist').style.display = nombre === 'hist' ? 'block' : 'none';
   $('panel-cuentas').style.display = nombre === 'cuentas' ? 'block' : 'none';
   $('t-conv').classList.toggle('sel', nombre === 'conv');
+  $('t-hist').classList.toggle('sel', nombre === 'hist');
   $('t-cuentas').classList.toggle('sel', nombre === 'cuentas');
+  if (nombre === 'hist'){ $('h-err').textContent = ''; cargarHistorial(); }
   if (nombre === 'cuentas'){ $('c-err').textContent = ''; cargarCuentas(); }
 }
 function boton(texto, clase, accion){
   const b = document.createElement('button');
   b.textContent = texto; if (clase) b.className = clase;
   b.addEventListener('click', accion); return b;
+}
+const num = new Intl.NumberFormat('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+function fechaLocal(texto){
+  const d = new Date(texto.replace(' ', 'T'));
+  return isNaN(d) ? texto : d.toLocaleString('es-AR');
+}
+async function cargarHistorial(){
+  const r = await window.pywebview.api.listar_historial();
+  const lista = $('lista-hist'); lista.replaceChildren();
+  if (!r.ok){ $('h-err').textContent = r.error; return; }
+  if (!r.consultas.length){
+    const v = document.createElement('div'); v.className = 'vacio'; v.textContent = 'Todavía no hay consultas.'; lista.append(v); return;
+  }
+  for (const c of r.consultas){
+    const fila = document.createElement('div'); fila.className = 'consulta';
+    const fecha = document.createElement('div'); fecha.className = 'fecha'; fecha.textContent = fechaLocal(c.fecha);
+    const datos = document.createElement('div');
+    datos.textContent = 'ARS ' + num.format(c.monto) + ' · cotización ' + num.format(c.cotizacion) + ' → USD ' + num.format(c.resultado);
+    fila.append(fecha, datos);
+    if (r.es_admin){
+      const quien = document.createElement('div'); quien.className = 'quien'; quien.textContent = c.correo || '(usuario eliminado)'; fila.append(quien);
+    }
+    lista.append(fila);
+  }
 }
 async function cargarCuentas(){
   const r = await window.pywebview.api.listar_cuentas();
@@ -132,6 +168,7 @@ function entrar(r){
   ver('conversor');
 }
 $('t-conv').addEventListener('click', () => pestana('conv'));
+$('t-hist').addEventListener('click', () => pestana('hist'));
 $('t-cuentas').addEventListener('click', () => pestana('cuentas'));
 $('b-clave').addEventListener('click', async () => {
   const r = await window.pywebview.api.resetear_clave(cuentaClave, $('nueva-clave').value);
@@ -165,6 +202,7 @@ document.addEventListener('keydown', e => {
   const activa = document.querySelector('.vista.activa').id;
   if (activa === 'v-login') $('b-login').click();
   else if (activa === 'v-registro') $('b-registro').click();
+  else if ($('panel-hist').style.display === 'block'){ /* nada */ }
   else if ($('panel-cuentas').style.display === 'block'){
     if ($('form-clave').classList.contains('ver')) $('b-clave').click();
   } else convertir();

@@ -1,6 +1,6 @@
 # Mi Cotizador
 
-App de escritorio (macOS) para convertir un monto en pesos a dólares con la cotización que ingreses. Hay que registrarse e iniciar sesión (usuarios en PocketBase). Cada conversión se guarda con fecha y hora en `historial.txt`.
+App de escritorio (macOS) para convertir un monto en pesos a dólares con la cotización que ingreses. Hay que registrarse e iniciar sesión (usuarios en PocketBase). Cada conversión se guarda en PocketBase (tabla `consultas`) con usuario, monto, cotización, resultado y fecha y hora.
 
 ## Qué necesita
 - Python 3.9 o superior y macOS (Apple Silicon probado).
@@ -42,7 +42,9 @@ python -m unittest discover -s tests
 Resultado: `~/Applications/Mi Cotizador.app` (firmado de forma local). Si macOS lo bloquea: clic derecho > Abrir.
 
 ## Historial
-`historial.txt` se crea junto al ejecutable (en `~/Applications/` si abrís `~/Applications/Mi Cotizador.app`). Formato:
-```
-2026-11-16 17:45:03 | ARS 100000.00 | cotización 1000.00 | USD 100.00
-```
+Cada conversión exitosa se guarda en la base (colección `consultas`): usuario, monto, cotización, resultado y fecha y hora (la pone el servidor). La app ya no escribe `historial.txt`.
+
+- Pestaña **Historial**: un usuario común ve solo sus consultas (las 50 más recientes); el admin ve las de todos, con el correo de quien consultó.
+- Las consultas no se pueden editar ni borrar por la API; cada persona solo crea consultas a su nombre. Las reglas están en `pb_migrations/` y se aplican solas.
+- Si la base no responde al guardar, la app muestra igual el resultado y avisa que no se guardó.
+- Un `historial.txt` de versiones anteriores, si existe, no se usa ni se importa.

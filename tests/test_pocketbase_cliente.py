@@ -29,6 +29,12 @@ class FalsoPocketBase(BaseHTTPRequestHandler):
 
     def do_POST(self):
         cuerpo = self._cuerpo()
+        if "/consultas/" in self.path:
+            ULTIMO["auth"] = self.headers.get("Authorization")
+            ULTIMO["cuerpo"] = cuerpo
+            if not ULTIMO["auth"]:
+                return self._responder(400, {})
+            return self._responder(200, {"id": "c1"})
         if self.path.endswith("/records"):
             if cuerpo["email"] in USUARIOS:
                 return self._responder(400, {"data": {"email": {"code": "validation_not_unique"}}})
@@ -43,6 +49,15 @@ class FalsoPocketBase(BaseHTTPRequestHandler):
 
     def do_GET(self):
         ULTIMO["auth"] = self.headers.get("Authorization")
+        ULTIMO["ruta"] = self.path
+        if "/consultas/" in self.path:
+            if not ULTIMO["auth"]:
+                return self._responder(403, {})
+            return self._responder(200, {"items": [
+                {"id": "c1", "monto": 150000, "cotizacion": 1550, "resultado": 96.77,
+                 "created": "2026-11-18 22:29:17.101Z", "expand": {"usuario": {"email": "a@b.com"}}},
+                {"id": "c2", "monto": 1, "cotizacion": 1, "resultado": 1, "created": "2026-11-18 22:00:00.000Z"},
+            ]})
         if ULTIMO["auth"] != "tok-admin":
             return self._responder(403, {})
         self._responder(200, {"items": [
@@ -141,6 +156,31 @@ class TestCliente(unittest.TestCase):
     def test_operacion_sin_permiso(self):
         with self.assertRaisesRegex(pb.ErrorAcceso, "permiso"):
             pb.cambiar_desactivado("tok-usuario", "id1", True, self.base)
+
+    def test_guardar_consulta_envia_usuario_y_numeros(self):
+        from decimal import Decimal
+        pb.guardar_consulta("tok", "idU", Decimal("150000.00"), Decimal("1550.00"), Decimal("96.77"), self.base)
+        self.assertEqual(ULTIMO["auth"], "tok")
+        self.assertEqual(ULTIMO["cuerpo"], {"usuario": "idU", "monto": 150000.0,
+                                            "cotizacion": 1550.0, "resultado": 96.77})
+        self.assertNotIn("created", ULTIMO["cuerpo"])  # la fecha la pone el servidor
+
+    def test_guardar_consulta_rechazada(self):
+        with self.assertRaisesRegex(pb.ErrorAcceso, "No se pudo guardar el historial"):
+            pb.guardar_consulta("", "idU", 1, 1, 1, self.base)
+
+    def test_guardar_consulta_base_apagada(self):
+        with self.assertRaises(pb.BaseNoDisponible):
+            pb.guardar_consulta("tok", "idU", 1, 1, 1, "http://127.0.0.1:1")
+
+    def test_listar_consultas(self):
+        consultas = pb.listar_consultas("tok", self.base)
+        self.assertEqual(consultas[0].correo, "a@b.com")
+        self.assertEqual((consultas[0].monto, consultas[0].resultado), (150000, 96.77))
+        self.assertIsNone(consultas[1].correo)
+        self.assertIn("sort=-created", ULTIMO["ruta"])
+        self.assertIn("expand=usuario", ULTIMO["ruta"])
+        self.assertIn("perPage=50", ULTIMO["ruta"])
 
 
 if __name__ == "__main__":

@@ -12,6 +12,7 @@ CORREO_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 Sesion = namedtuple("Sesion", "token correo rol id")
 Cuenta = namedtuple("Cuenta", "id correo rol desactivado")
+Consulta = namedtuple("Consulta", "id correo monto cotizacion resultado fecha")
 
 
 class ErrorAcceso(Exception):
@@ -125,3 +126,28 @@ def resetear_clave(token, id_cuenta, clave, base=None):
     validar_clave(clave)
     _administrar("PATCH", f"/api/collections/users/records/{urllib.parse.quote(id_cuenta)}",
                  token, {"password": clave, "passwordConfirm": clave}, base)
+
+
+def guardar_consulta(token, id_usuario, monto, cotizacion, resultado, base=None):
+    """Guarda una conversión. La fecha la pone el servidor."""
+    try:
+        _llamar("POST", "/api/collections/consultas/records",
+                {"usuario": id_usuario, "monto": float(monto),
+                 "cotizacion": float(cotizacion), "resultado": float(resultado)},
+                token, base)
+    except _ErrorHTTP:
+        raise ErrorAcceso("No se pudo guardar el historial.") from None
+
+
+def listar_consultas(token, base=None):
+    """Las 50 consultas más recientes que el usuario puede ver."""
+    datos = _administrar(
+        "GET",
+        "/api/collections/consultas/records?"
+        + urllib.parse.urlencode({"perPage": 50, "sort": "-created", "expand": "usuario"}),
+        token, base=base)
+    return [
+        Consulta(i["id"], (i.get("expand", {}).get("usuario") or {}).get("email"),
+                 i["monto"], i["cotizacion"], i["resultado"], i["created"])
+        for i in datos.get("items", [])
+    ]
