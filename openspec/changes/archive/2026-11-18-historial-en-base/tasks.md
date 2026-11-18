@@ -18,4 +18,4 @@
 
 ## 4. Verificación final
 
-- [ ] 4.1 En la app real: convertir con dos usuarios distintos y comprobar que cada uno ve solo lo suyo, que el admin ve todo y que las consultas aparecen en el panel de PocketBase con usuario y fecha. Verificación: coincide con lo esperado en la app y en el panel.
+- [x] 4.1 En la app real: convertir con dos usuarios distintos y comprobar que cada uno ve solo lo suyo, que el admin ve todo y que las consultas aparecen en el panel de PocketBase con usuario y fecha. Verificación: coincide con lo esperado en la app y en el panel.
