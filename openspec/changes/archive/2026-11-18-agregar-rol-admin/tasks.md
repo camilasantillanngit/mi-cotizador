@@ -17,4 +17,4 @@
 
 ## 4. Verificación final
 
-- [ ] 4.1 Con dos usuarios y un admin: el admin desactiva a un usuario y ese usuario ya no puede entrar; el admin resetea una clave y el usuario entra con la nueva. Verificación: cada paso observado en la app y confirmado en el panel de PocketBase.
+- [x] 4.1 Con dos usuarios y un admin: el admin desactiva a un usuario y ese usuario ya no puede entrar; el admin resetea una clave y el usuario entra con la nueva. Verificación: cada paso observado en la app y confirmado en el panel de PocketBase.
