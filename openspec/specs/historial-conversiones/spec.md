@@ -1,7 +1,7 @@
 # historial-conversiones Specification
 
 ## Purpose
-Mantiene un registro persistente y legible de todas las conversiones realizadas, con fecha y hora, en un archivo de texto plano.
+Mantiene un registro persistente de todas las conversiones realizadas, ligado a quien las hizo y con fecha y hora, en la base de datos, con acceso limitado según el rol.
 
 ## Requirements
 
