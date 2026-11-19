@@ -1,7 +1,7 @@
 # conversion-pesos-dolares Specification
 
 ## Purpose
-Permite al usuario convertir un monto en pesos a dólares a partir de una cotización que ingresa manualmente, mostrando el resultado en pantalla.
+Permite al usuario convertir un monto en pesos a dólares a partir de una cotización (traída automáticamente o ingresada a mano), mostrando el resultado en pantalla.
 
 ## Requirements
 
