@@ -58,8 +58,10 @@ Cada versión quedó documentada con OpenSpec en `openspec/changes/archive/`, y 
 2. **Instalar las librerías** (entorno virtual)
    ```bash
    python3 -m venv .venv && . .venv/bin/activate
+   pip install --upgrade pip
    pip install -r requirements.txt
    ```
+   Actualizar `pip` primero es necesario: el que trae Python 3.9 de macOS es viejo y falla al instalar `pywebview`.
 3. **Configuración:** copiá el ejemplo (con los valores por defecto ya funciona; ver [Configuración](#configuración-env))
    ```bash
    cp .env.example .env

@@ -5,6 +5,7 @@ set -e
 cd "$(dirname "$0")"
 [ -d .venv ] || python3 -m venv .venv
 . .venv/bin/activate
+pip install -q --upgrade pip
 pip install -q -r requirements-dev.txt
 pyinstaller --noconfirm --clean --windowed --name "Mi Cotizador" app.py
 DEST="$HOME/Applications/Mi Cotizador.app"
