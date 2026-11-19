@@ -14,4 +14,4 @@
 ## 3. Ejecutable y verificación final
 
 - [x] 3.1 Reconstruir el `.app` y ejecutarlo con `--probar-cotizacion`. Verificación: el ejecutable empaquetado imprime la cotización sin errores de certificado.
-- [ ] 3.2 Con la app real: iniciar sesión y ver la cotización completada, convertir 155000 pesos y comparar con la venta mostrada, y probar sin internet. Verificación: resultado = 155000 / venta, y sin internet aparece el aviso.
+- [x] 3.2 Con la app real: iniciar sesión y ver la cotización completada, convertir 155000 pesos y comparar con la venta mostrada, y probar sin internet. Verificación: resultado = 155000 / venta, y sin internet aparece el aviso.

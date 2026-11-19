@@ -6,11 +6,11 @@ Permite al usuario convertir un monto en pesos a dólares a partir de una cotiza
 ## Requirements
 
 ### Requirement: Campos de entrada y botón de conversión
-La aplicación SHALL mostrar un campo para el monto en pesos, un campo para la cotización del dólar y un botón "Convertir".
+La aplicación SHALL mostrar un campo para el monto en pesos, un campo para la cotización del dólar y un botón "Convertir"; el campo de cotización SHALL completarse con la cotización del día cuando esté disponible.
 
 #### Scenario: Ventana inicial
-- **WHEN** el usuario abre Mi Cotizador
-- **THEN** ve los dos campos vacíos, el botón "Convertir" y un área de resultado sin valor
+- **WHEN** el usuario abre el conversor
+- **THEN** ve el monto vacío, el botón "Convertir", un área de resultado sin valor y el campo de cotización completado con la del día, o vacío si no se pudo obtener
 
 ### Requirement: Cálculo del resultado en dólares
 Al presionar "Convertir", la aplicación SHALL mostrar el resultado en dólares igual al monto en pesos dividido por la cotización, redondeado a 2 decimales.
