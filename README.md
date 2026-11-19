@@ -1,68 +1,156 @@
 # Mi Cotizador
 
-App de escritorio (macOS) para convertir un monto en pesos a dólares con la cotización que ingreses. Hay que registrarse e iniciar sesión (usuarios en PocketBase). Cada conversión se guarda en PocketBase (tabla `consultas`) con usuario, monto, cotización, resultado y fecha y hora.
+App de escritorio (macOS) hecha en Python para **convertir pesos a dólares**. Trae sola la cotización del dólar oficial, pide iniciar sesión, guarda cada conversión en una base de datos (PocketBase) y tiene un panel para administradores.
+
+Construida paso a paso con Claude Code y [OpenSpec](https://github.com/Fission-AI/OpenSpec) para la Diplomatura en Gestión de Transformación Digital Asistida por IA Generativa (Módulo 4, clase 11).
+
+## Capturas
+
+Las capturas usan cuentas y datos de ejemplo.
+
+| Inicio de sesión | Conversor con cotización automática |
+|---|---|
+| ![Inicio de sesión](docs/01-inicio-sesion.png) | ![Conversor](docs/02-conversor.png) |
+
+| Historial de un usuario | Historial del admin (todos) |
+|---|---|
+| ![Historial de usuario](docs/03-historial-usuario.png) | ![Historial del admin](docs/04-historial-admin.png) |
+
+**Panel de cuentas (solo admin):**
+
+![Cuentas](docs/05-cuentas-admin.png)
+
+## Qué hace
+
+- **Convierte** un monto en pesos a dólares: `monto / cotización`, con 2 decimales.
+- **Cotización automática:** al entrar, trae la *venta* del dólar oficial desde [DolarAPI](https://dolarapi.com) y la completa en el campo. El botón **Actualizar cotización** la vuelve a pedir; también se puede escribir a mano.
+- **Usuarios:** registro e inicio de sesión con correo y contraseña (PocketBase). Las contraseñas nunca se guardan en texto plano.
+- **Historial en la base:** cada conversión guarda usuario, monto, cotización, resultado y fecha y hora. Cada usuario ve solo las suyas; el admin ve las de todos.
+- **Administrador:** ve la lista de cuentas, puede desactivarlas o reactivarlas y asignar una contraseña nueva. No puede desactivarse a sí mismo.
+- **Seguridad en la base:** los permisos los aplica PocketBase con reglas, no solo la pantalla.
+
+## Versiones
+
+| Versión | Qué suma |
+|---|---|
+| v1 · Conversor | Monto y cotización a mano; guardaba en un TXT. |
+| v2 · Usuarios | PocketBase: registro e inicio de sesión. |
+| v3 · Administrador | Rol `admin`, panel de cuentas, reglas de PocketBase. |
+| v4 · Historial | Consultas en la base (quién, cuánto, cotización y fecha) en lugar del TXT. |
+| v5 · Cotización | La trae sola desde DolarAPI. |
+| Orden | Configuración en `.env`, `.env.example`, `.gitignore` y este README. |
+
+Cada versión quedó documentada con OpenSpec en `openspec/changes/archive/`, y el comportamiento actual de la app está en `openspec/specs/`.
 
 ## Qué necesita
-- Python 3.9 o superior y macOS (Apple Silicon probado).
 
-## PocketBase (base de datos de usuarios)
-La app necesita PocketBase en marcha. En una terminal aparte:
-```bash
-./pocketbase.sh
-```
-La primera vez descarga PocketBase v0.40.6 (verifica el checksum) y queda en `pocketbase/` (no se sube a Git). Después:
-1. Abrí `http://127.0.0.1:8090/_/` y creá el usuario administrador de la base (correo y contraseña a tu elección).
-2. Los usuarios de la app se registran desde la propia app (pantalla "Registrate"). Para probar, registrá dos y verlos en el panel: colección `users`.
+- macOS (Apple Silicon probado) y Python 3.9 o superior.
+- Conexión a internet para la cotización automática (sin internet funciona con cotización a mano).
+- PocketBase v0.40.6: lo descarga `./pocketbase.sh` (para macOS Apple Silicon; en otro sistema, bajá el que corresponda de [pocketbase.io](https://pocketbase.io) y dejalo en `pocketbase/`).
 
-### Roles y administrador (v3)
-La estructura de la base (campos `rol` y `desactivado` y las reglas de acceso) está en `pb_migrations/` y se aplica sola al iniciar `./pocketbase.sh`: no hay que configurar nada a mano.
+## Instalación paso a paso
 
-- Las cuentas nuevas son `usuario`. **El primer admin se marca a mano**: en el panel de PocketBase, colección `users`, abrí la cuenta y poné el campo `rol` en `admin`.
-- Un admin ve en la app la pestaña **Cuentas**: lista, desactivar/reactivar y asignar contraseña nueva. No puede desactivarse a sí mismo.
-- Una cuenta desactivada no puede iniciar sesión. Un usuario común no ve otras cuentas ni puede darse rol admin (lo impide PocketBase, no solo la pantalla).
+1. **Clonar y entrar a la carpeta**
+   ```bash
+   git clone https://github.com/camilasantillanngit/mi-cotizador.git
+   cd mi-cotizador
+   ```
+2. **Instalar las librerías** (entorno virtual)
+   ```bash
+   python3 -m venv .venv && . .venv/bin/activate
+   pip install -r requirements.txt
+   ```
+3. **Configuración:** copiá el ejemplo (con los valores por defecto ya funciona; ver [Configuración](#configuración-env))
+   ```bash
+   cp .env.example .env
+   ```
+4. **Levantar PocketBase** en una terminal aparte y dejarla abierta
+   ```bash
+   ./pocketbase.sh
+   ```
+   La primera vez descarga PocketBase (verifica el checksum). La estructura de la base (usuarios con rol, tabla de consultas y reglas) está en `pb_migrations/` y se aplica sola.
+5. **Crear el administrador de la base:** abrí `http://127.0.0.1:8090/_/` y creá el superusuario con un correo y una contraseña a tu elección.
+6. **Abrir la app**
+   ```bash
+   python app.py
+   ```
+7. **Probar:** presioná **Registrate** y creá una cuenta (contraseña de 8 o más caracteres). Aparece el conversor con la cotización completa.
+8. **Marcar un admin:** en el panel de PocketBase (`http://127.0.0.1:8090/_/`), colección `users`, abrí la cuenta y poné el campo `rol` en `admin`. Cerrá sesión y entrá de nuevo: aparece la pestaña **Cuentas**.
 
-Si PocketBase está en otra dirección, definí `POCKETBASE_URL`.
+## Usuarios de prueba
 
-## Ejecutar en desarrollo
-```bash
-python3 -m venv .venv && . .venv/bin/activate
-pip install -r requirements.txt
-python app.py
-```
+- Para probar permisos hacen falta al menos **dos usuarios comunes** y **un admin**: registrá cuentas desde la app y marcá una como admin como en el paso 8.
+- Con el admin, en **Cuentas** podés desactivar a un usuario (ya no puede iniciar sesión) y asignarle una contraseña nueva.
 
 ## Configuración (.env)
-La configuración va en un archivo `.env` que **nunca se sube a GitHub** (está en `.gitignore`). Se sube `.env.example`, con los mismos nombres y sin secretos:
-```bash
-cp .env.example .env
-```
-- Prioridad: variable del sistema > `.env` > valor por defecto (sin `.env` la app funciona igual).
-- Variables actuales: `POCKETBASE_URL` (por defecto `http://127.0.0.1:8090`) y `DOLARAPI_URL` (por defecto `https://dolarapi.com/v1/dolares/oficial`).
+
+La configuración va en un archivo `.env` que **nunca se sube a GitHub** (está en `.gitignore`). Se sube `.env.example`, con los mismos nombres y sin secretos.
+
+| Variable | Para qué | Por defecto |
+|---|---|---|
+| `POCKETBASE_URL` | Dirección de PocketBase | `http://127.0.0.1:8090` |
+| `DOLARAPI_URL` | Servicio de cotización | `https://dolarapi.com/v1/dolares/oficial` |
+
+- Prioridad: variable del sistema > `.env` > valor por defecto. Sin `.env` la app funciona igual.
 - En desarrollo el `.env` va en la carpeta del proyecto. Para el ejecutable, en la carpeta que contiene el `.app` (por ejemplo `~/Applications/.env`).
-- Si alguna vez se sube una clave por error, hay que cambiarla: borrar el archivo no alcanza, queda en el historial.
+- Si alguna vez se sube una clave por error, hay que cambiarla: borrar el archivo no alcanza, queda en el historial de Git.
 
 ## Cotización automática (DolarAPI)
-Al abrir el conversor, la app trae sola la **venta del dólar oficial** desde [DolarAPI](https://dolarapi.com) (servicio público, sin clave) y completa el campo de cotización, indicando el origen y la fecha de actualización.
 
-- El botón **Actualizar cotización** vuelve a consultarla. El campo sigue siendo editable: lo que escribas a mano no se pisa.
-- Si no hay internet o el servicio falla, la app lo avisa y se puede escribir la cotización a mano.
+- Se usa la **venta** del dólar oficial, que es lo que se paga al comprar dólares con pesos.
 - El pedido es un GET público: no envía correo, sesión, montos ni ningún dato tuyo.
-- Diagnóstico sin abrir la ventana: `python app.py --probar-cotizacion` (o el mismo argumento sobre el ejecutable).
+- Si no hay internet o el servicio falla, la app lo avisa y se puede escribir la cotización a mano.
+- Diagnóstico sin abrir la ventana: `python app.py --probar-cotizacion`.
+
+## Historial y permisos
+
+- Cada conversión exitosa se guarda en la colección `consultas`. Las consultas no se pueden editar ni borrar por la API, y cada persona solo puede crear consultas a su nombre.
+- Si la base no responde al guardar, la app muestra igual el resultado y avisa que no se guardó.
+- El historial muestra las 50 consultas más recientes.
+- Un `historial.txt` de la versión 1, si existe, ya no se usa ni se importa.
+
+## Crear el ejecutable
+
+```bash
+./build.sh
+```
+
+Genera `~/Applications/Mi Cotizador.app` (firmado de forma local). Se guarda fuera de Escritorio y Documentos porque iCloud agrega metadatos que impiden abrirlo. Si macOS lo bloquea: clic derecho > Abrir. PocketBase tiene que estar en marcha (`./pocketbase.sh`).
 
 ## Tests
+
 ```bash
 python -m unittest discover -s tests
 ```
 
-## Crear el ejecutable
-```bash
-./build.sh
+## Estructura del proyecto
+
 ```
-Resultado: `~/Applications/Mi Cotizador.app` (firmado de forma local). Si macOS lo bloquea: clic derecho > Abrir.
+app.py                  Ventana (pywebview) y pantallas
+servicio.py             Sesión del usuario y acciones que usa la ventana
+cotizador.py            Validación y conversión de pesos a dólares
+pocketbase_cliente.py   Cliente de la API de PocketBase (usuarios, cuentas, consultas)
+dolarapi.py             Consulta pública de la cotización
+config.py               Lectura de .env y variables de entorno
+pb_migrations/          Estructura de la base: campos, tabla consultas y reglas
+pocketbase.sh           Descarga (con checksum) y ejecuta PocketBase
+build.sh                Genera el ejecutable con PyInstaller
+openspec/               Especificaciones y cambios (propuesta, diseño, tareas)
+tests/                  Pruebas automáticas
+docs/                   Capturas de este README
+```
 
-## Historial
-Cada conversión exitosa se guarda en la base (colección `consultas`): usuario, monto, cotización, resultado y fecha y hora (la pone el servidor). La app ya no escribe `historial.txt`.
+## Qué no se sube a Git
 
-- Pestaña **Historial**: un usuario común ve solo sus consultas (las 50 más recientes); el admin ve las de todos, con el correo de quien consultó.
-- Las consultas no se pueden editar ni borrar por la API; cada persona solo crea consultas a su nombre. Las reglas están en `pb_migrations/` y se aplican solas.
-- Si la base no responde al guardar, la app muestra igual el resultado y avisa que no se guardó.
-- Un `historial.txt` de versiones anteriores, si existe, no se usa ni se importa.
+| No se sube | Por qué |
+|---|---|
+| `.env` | Claves y configuración personal. |
+| `.venv/`, `build/`, `dist/` | Se vuelven a crear en cada computadora. |
+| `pocketbase/` | El programa se descarga y los datos (usuarios, consultas) son de cada uno. |
+| `historial.txt` | Datos de prueba locales de la versión 1. |
+
+Sí se sube: el código, este README, `requirements.txt`, `.env.example` y la estructura de la base (`pb_migrations/`).
+
+## Desarrollo con OpenSpec
+
+Cada versión se propuso con las skills de OpenSpec para Claude Code (`openspec-propose`), se revisaron la propuesta y las tareas, se aplicó (`openspec-apply-change`) y se archivó (`openspec-archive-change`). Las decisiones de diseño y los escenarios de cada cambio están en `openspec/changes/archive/`.
