@@ -119,3 +119,32 @@ class TestAdministracion(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestCotizacion(unittest.TestCase):
+    def test_cotizacion_ok_formato_para_el_campo(self):
+        from decimal import Decimal
+        with mock.patch("dolarapi.obtener_venta", return_value={"venta": Decimal("1580"), "fecha": "2026-11-18T18:00:00.000Z"}):
+            r = Servicio().obtener_cotizacion()
+        self.assertEqual(r, {"ok": True, "valor": "1580,00", "fecha": "2026-11-18T18:00:00.000Z", "origen": "Dólar oficial (venta)"})
+
+    def test_cotizacion_el_valor_del_campo_es_convertible(self):
+        import cotizador
+        from decimal import Decimal
+        with mock.patch("dolarapi.obtener_venta", return_value={"venta": Decimal("1580.5"), "fecha": None}):
+            valor = Servicio().obtener_cotizacion()["valor"]
+        self.assertEqual(cotizador.parsear_numero(valor, "x"), Decimal("1580.50"))
+
+    def test_cotizacion_fallo_no_rompe(self):
+        import dolarapi
+        with mock.patch("dolarapi.obtener_venta", side_effect=dolarapi.CotizacionNoDisponible("No se pudo obtener la cotización. Ingresala a mano.")):
+            r = Servicio().obtener_cotizacion()
+        self.assertEqual(r, {"ok": False, "error": "No se pudo obtener la cotización. Ingresala a mano."})
+
+    def test_cotizacion_no_usa_la_sesion(self):
+        # funciona sin sesión y no recibe ningún dato de ella
+        import dolarapi
+        from decimal import Decimal
+        with mock.patch("dolarapi.obtener_venta", return_value={"venta": Decimal("1"), "fecha": None}) as m:
+            Servicio().obtener_cotizacion()
+        m.assert_called_once_with()

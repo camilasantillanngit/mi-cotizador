@@ -1,6 +1,8 @@
 """Mi Cotizador: ventana de escritorio (pywebview) para convertir pesos a dólares."""
 import webview
 
+import sys
+
 from servicio import Servicio
 
 HTML = """<!doctype html>
@@ -25,6 +27,9 @@ HTML = """<!doctype html>
   .consulta{background:#fff;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:13px}
   .consulta .fecha{color:#666;font-size:12px}.consulta .quien{color:#0a6cff;font-size:12px}
   .vacio{color:#666;font-size:13px}
+  #cot-info{font-size:12px;color:#555;margin-top:4px;min-height:16px}
+  #cot-info.falla{color:#9a6700}
+  #b-cot{margin-top:6px;padding:5px 10px;width:auto;font-size:12px}
   .tab{margin:0;padding:6px 14px;width:auto;font-size:13px;background:#e5e5ea;color:#1d1d1f}
   .tab.sel{background:#1d1d1f;color:#fff}
   .fila{display:grid;grid-template-columns:1fr auto;gap:4px 8px;align-items:center;background:#fff;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:13px}
@@ -66,6 +71,8 @@ HTML = """<!doctype html>
   <input id="monto" inputmode="decimal">
   <label for="cotizacion">Cotización del dólar</label>
   <input id="cotizacion" inputmode="decimal">
+  <div id="cot-info"></div>
+  <button class="secundario" id="b-cot">Actualizar cotización</button>
   <button id="convertir">Convertir</button>
   <div id="error"></div>
   <div id="resultado"></div>
@@ -94,6 +101,16 @@ function ver(nombre){
 }
 function limpiarClaves(){ for (const i of ['l-clave','r-clave','r-conf']) $(i).value=''; }
 let cuentaClave = null;
+async function actualizarCotizacion(forzar){
+  const r = await window.pywebview.api.obtener_cotizacion();
+  const info = $('cot-info');
+  if (!r.ok){ info.className = 'falla'; info.textContent = r.error; return; }
+  // al abrir, no pisar lo que la persona ya escribió mientras llegaba la respuesta
+  if (!forzar && $('cotizacion').value.trim() !== '') return;
+  $('cotizacion').value = r.valor;
+  info.className = '';
+  info.textContent = r.origen + (r.fecha ? ' · actualizado ' + fechaLocal(r.fecha) : '');
+}
 function pestana(nombre){
   $('panel-conv').style.display = nombre === 'conv' ? 'block' : 'none';
   $('panel-hist').style.display = nombre === 'hist' ? 'block' : 'none';
@@ -162,12 +179,16 @@ function entrar(r){
   $('usuario').textContent = r.correo + (r.rol === 'admin' ? ' (admin)' : '');
   $('tabs').classList.toggle('admin', r.rol === 'admin');
   $('form-clave').classList.remove('ver'); $('c-err').textContent = ''; cuentaClave = null;
+  $('monto').value = ''; $('cotizacion').value = ''; $('cot-info').textContent = ''; $('cot-info').className = '';
   pestana('conv');
+  actualizarCotizacion(false);
   $('l-err').textContent = ''; $('r-err').textContent = '';
   $('resultado').textContent = ''; $('error').textContent = ''; $('aviso').textContent = '';
   ver('conversor');
 }
 $('t-conv').addEventListener('click', () => pestana('conv'));
+$('b-cot').addEventListener('click', () => actualizarCotizacion(true));
+$('cotizacion').addEventListener('input', () => { $('cot-info').className = ''; $('cot-info').textContent = 'Cotización ingresada a mano.'; });
 $('t-hist').addEventListener('click', () => pestana('hist'));
 $('t-cuentas').addEventListener('click', () => pestana('cuentas'));
 $('b-clave').addEventListener('click', async () => {
@@ -214,5 +235,8 @@ Api = Servicio
 
 
 if __name__ == "__main__":
+    if "--probar-cotizacion" in sys.argv:  # diagnóstico: sin ventana
+        print(Servicio().obtener_cotizacion())
+        sys.exit(0)
     webview.create_window("Mi Cotizador", html=HTML, js_api=Api(), width=460, height=640)
     webview.start()

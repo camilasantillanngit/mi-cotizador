@@ -36,9 +36,17 @@ La configuración va en un archivo `.env` que **nunca se sube a GitHub** (está 
 cp .env.example .env
 ```
 - Prioridad: variable del sistema > `.env` > valor por defecto (sin `.env` la app funciona igual).
-- Variable actual: `POCKETBASE_URL` (por defecto `http://127.0.0.1:8090`).
+- Variables actuales: `POCKETBASE_URL` (por defecto `http://127.0.0.1:8090`) y `DOLARAPI_URL` (por defecto `https://dolarapi.com/v1/dolares/oficial`).
 - En desarrollo el `.env` va en la carpeta del proyecto. Para el ejecutable, en la carpeta que contiene el `.app` (por ejemplo `~/Applications/.env`).
 - Si alguna vez se sube una clave por error, hay que cambiarla: borrar el archivo no alcanza, queda en el historial.
+
+## Cotización automática (DolarAPI)
+Al abrir el conversor, la app trae sola la **venta del dólar oficial** desde [DolarAPI](https://dolarapi.com) (servicio público, sin clave) y completa el campo de cotización, indicando el origen y la fecha de actualización.
+
+- El botón **Actualizar cotización** vuelve a consultarla. El campo sigue siendo editable: lo que escribas a mano no se pisa.
+- Si no hay internet o el servicio falla, la app lo avisa y se puede escribir la cotización a mano.
+- El pedido es un GET público: no envía correo, sesión, montos ni ningún dato tuyo.
+- Diagnóstico sin abrir la ventana: `python app.py --probar-cotizacion` (o el mismo argumento sobre el ejecutable).
 
 ## Tests
 ```bash

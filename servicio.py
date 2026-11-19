@@ -1,5 +1,6 @@
 """Estado de sesión de Mi Cotizador: lo que expone la interfaz a Python."""
 import cotizador
+import dolarapi
 import pocketbase_cliente as pb
 
 
@@ -77,3 +78,12 @@ class Servicio:
 
     def resetear_clave(self, id_cuenta, clave):
         return self._admin(lambda t: pb.resetear_clave(t, id_cuenta, clave, self._base) or {})
+
+    def obtener_cotizacion(self):
+        """Venta del dólar oficial. No requiere ni envía datos de la sesión."""
+        try:
+            datos = dolarapi.obtener_venta()
+        except dolarapi.CotizacionNoDisponible as error:
+            return {"ok": False, "error": str(error)}
+        valor = f"{datos['venta']:.2f}".replace(".", ",")
+        return {"ok": True, "valor": valor, "fecha": datos["fecha"], "origen": "Dólar oficial (venta)"}
