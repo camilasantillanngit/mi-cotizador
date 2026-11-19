@@ -185,3 +185,21 @@ class TestCliente(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestDireccion(unittest.TestCase):
+    def test_direccion_desde_env_y_prioridad_del_entorno(self):
+        import os
+        import tempfile
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as d:
+            env = Path(d) / ".env"
+            env.write_text('POCKETBASE_URL="http://127.0.0.1:9000/"\n', encoding="utf-8")
+            with mock.patch.dict(os.environ, {}, clear=False), mock.patch("config.carpeta_base", return_value=Path(d)):
+                os.environ.pop("POCKETBASE_URL", None)
+                self.assertEqual(pb.url_base(), "http://127.0.0.1:9000")
+                os.environ["POCKETBASE_URL"] = "http://127.0.0.1:7000"
+                self.assertEqual(pb.url_base(), "http://127.0.0.1:7000")
+            with mock.patch.dict(os.environ, {}, clear=False), mock.patch("config.carpeta_base", return_value=Path(d) / "vacio"):
+                os.environ.pop("POCKETBASE_URL", None)
+                self.assertEqual(pb.url_base(), "http://127.0.0.1:8090")

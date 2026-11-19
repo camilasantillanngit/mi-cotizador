@@ -1,11 +1,12 @@
 """Cliente mínimo de PocketBase (solo biblioteca estándar) para usuarios."""
 import json
-import os
 import re
 import urllib.error
 import urllib.parse
 import urllib.request
 from collections import namedtuple
+
+import config
 
 URL_POR_DEFECTO = "http://127.0.0.1:8090"
 CORREO_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -29,7 +30,7 @@ class _ErrorHTTP(Exception):
 
 
 def url_base():
-    return os.environ.get("POCKETBASE_URL", URL_POR_DEFECTO).rstrip("/")
+    return config.obtener("POCKETBASE_URL", URL_POR_DEFECTO).rstrip("/")
 
 
 def validar_clave(clave):

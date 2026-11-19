@@ -6,3 +6,4 @@ __pycache__/
 historial.txt
 .DS_Store
 pocketbase/
+.env

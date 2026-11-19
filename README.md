@@ -30,6 +30,16 @@ pip install -r requirements.txt
 python app.py
 ```
 
+## Configuración (.env)
+La configuración va en un archivo `.env` que **nunca se sube a GitHub** (está en `.gitignore`). Se sube `.env.example`, con los mismos nombres y sin secretos:
+```bash
+cp .env.example .env
+```
+- Prioridad: variable del sistema > `.env` > valor por defecto (sin `.env` la app funciona igual).
+- Variable actual: `POCKETBASE_URL` (por defecto `http://127.0.0.1:8090`).
+- En desarrollo el `.env` va en la carpeta del proyecto. Para el ejecutable, en la carpeta que contiene el `.app` (por ejemplo `~/Applications/.env`).
+- Si alguna vez se sube una clave por error, hay que cambiarla: borrar el archivo no alcanza, queda en el historial.
+
 ## Tests
 ```bash
 python -m unittest discover -s tests
